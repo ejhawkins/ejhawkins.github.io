@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trend Report — Demo</title>
+  <style>
+    :root{
+      --bg-1:#D7D4C9; --bg-2:#EF5DA8; --muted:#9fb0c8;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg,var(--bg-2) 0%, var(--bg-1) 100%);
+      display:flex;align-items:center;justify-content:center;color:#ecf6ff;
+      /* fallback background transition (we use layered crossfade for better results) */
+      transition: background 600ms ease;
+    }
+
+    /* Background crossfade layers (full-bleed behind content) */
+    #bg-layers{position:fixed;inset:0;z-index:-2;pointer-events:none}
+    .bg-layer{position:absolute;inset:0;background-size:cover;background-position:center center;opacity:0;transition:opacity .9s ease;filter:brightness(.95) saturate(.95)}
+    .bg-layer.visible{opacity:1}
+
+    .card{width:100%;max-width:1100px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));overflow:hidden;position:relative;z-index:1}
+    .hero{display:grid;grid-template-columns:1fr;gap:28px;align-items:center;padding:40px}
+
+    .image-placeholder{min-height:320px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#2b6cb0 0%, #805ad5 100%);box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);padding:22px;text-align:center;cursor:pointer;transition:opacity .35s ease}
+    .placeholder-text{display:inline-block;background:rgba(0,0,0,0.16);padding:12px 16px;border-radius:12px;font-weight:700;color:#fff;font-size:15px;backdrop-filter: blur(4px);word-break:break-all;max-width:100%}
+    .slide-image{width:100%;height:auto;margin-bottom:18px;box-shadow:0 8px 24px rgba(2,8,23,0.35);object-fit:cover;transition:opacity .45s ease}
+    .slide-video{width:100%;height:auto;border-radius:10px;margin-bottom:18px;box-shadow:0 8px 24px rgba(2,8,23,0.35);object-fit:cover;transition:opacity .45s ease;background:#000}
+
+    .content h1{margin:0 0 10px 0;font-size:32px;color:#ffffff}
+    .content p{margin:0 0 18px 0;color:var(--muted);line-height:1.45}
+    .meta{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+    .badge{background:#ffda2a;color:#111;font-weight:700;padding:8px 12px;border-radius:999px}
+    .cta{display:inline-block;padding:10px 16px;border-radius:10px;background:#ffffff;color:#061024;text-decoration:none;font-weight:800;box-shadow:0 8px 28px rgba(8,14,28,0.18)}
+
+    /* slider controls */
+    .controls{margin-top:18px;display:flex;gap:10px;align-items:center;}
+    .btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.06);color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+    .indicator{color:var(--muted);font-weight:600;margin-left:8px}
+
+    @media (max-width:860px){.hero{grid-template-columns:1fr;padding:22px;gap:18px}.image-placeholder{min-height:180px}.content h1{font-size:22px}}
+  </style>
+</head>
+<body>
+  <!-- Background layers used for smooth cross-fade transitions -->
+  <div id="bg-layers">
+    <div class="bg-layer" id="bg-a"></div>
+    <div class="bg-layer" id="bg-b"></div>
+  </div>
+
+  <div class="card">
+    <div class="hero">
+      <div class="content">
+        <div class="meta">
+          <div class="badge">Trend Report</div>
+          <div id="slide-meta" style="color:var(--muted);font-weight:600">2025 • Insights</div>
+        </div>
+        <h1 id="slide-title">Artlist Trend Report 2025</h1>
+        <!-- slide-specific inline image or video (changes per slide) -->
+        <img id="slide-image" class="slide-image" src="" alt="Slide image">
+        <video id="slide-video" class="slide-video" src="" loop muted playsinline preload="metadata" style="display:none;opacity:0"></video>
+        <p id="slide-desc">Discover key insights from handpicked creative leaders and 5,000+ content creators. Learn what's shaping the next era in content and get practical takeaways to stay relevant in 2025.</p>
+
+        <div class="controls">
+          <button class="btn" id="prev">◀ Prev</button>
+          <button class="btn" id="next">Next ▶</button>
+          <div class="indicator" id="indicator">1 / 5</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Slides array: each slide has a background (image) and content fields.
+    const slides = [
+      {
+        bg: "--bg-1",
+        image: "/images/1.png"
+      },
+      {
+        bg: "--bg-2",
+          image: "/images/2.png"
+      },
+      {
+          bg: "--bg-1",
+          image: "/images/3.png"
+      },
+      {
+          bg: "--bg-2",
+          image: "/images/4.png"
+      },
+      {
+          bg: "--bg-1",
+          image: "/images/5.png"
+      }
+    ];
+
+    // Preload images for snappy transitions
+    (function preload() {
+      slides.forEach(s => {
+        // preload bg image
+        const match = s.bg.match(/url\(['"]?(.*?)['"]?\)/);
+        if (match && match[1]) {
+          const img = new Image();
+          img.src = match[1];
+        }
+        // preload slide inline image if present
+        if (s.image) {
+          const img2 = new Image();
+          img2.src = s.image;
+        }
+      });
+    })();
+
+    const layerA = document.getElementById('bg-a');
+    const layerB = document.getElementById('bg-b');
+    let topIsA = true;
+    let index = 0;
+    const indicator = document.getElementById('indicator');
+
+    // content elements we will update per slide
+    const titleEl = document.getElementById('slide-title');
+    const descEl = document.getElementById('slide-desc');
+    const metaEl = document.getElementById('slide-meta');
+    const ctaEl = document.querySelector('.cta'); // may be null if CTA removed
+    const slideImageEl = document.getElementById('slide-image');
+    const slideVideoEl = document.getElementById('slide-video');
+
+    function setLayer(layer, bg) {
+      layer.style.backgroundImage = bg;
+      layer.style.backgroundSize = 'cover';
+      layer.style.backgroundPosition = 'center center';
+    }
+
+    // Update textual content and images for slide index i.
+    // This function only performs DOM content swaps (no transitions) — we call it after the bg fade.
+    function updateContent(i) {
+      const slide = slides[i];
+      if (!slide) return;
+      titleEl.textContent = slide.title;
+      descEl.textContent = slide.desc;
+      metaEl.textContent = slide.meta;
+      if (ctaEl) ctaEl.href = slide.cta || '#';
+      // update inline slide image or video (swap src then fade in)
+      if (slide.video) {
+        // show video element
+        if (slideVideoEl) {
+          slideVideoEl.src = slide.video;
+          slideVideoEl.poster = slide.poster || '';
+          slideVideoEl.style.display = '';
+          // ensure image is hidden
+          if (slideImageEl) slideImageEl.style.display = 'none';
+          // load and play
+          try { slideVideoEl.load(); slideVideoEl.play().catch(()=>{}); } catch(e){}
+          slideVideoEl.style.opacity = '1';
+        }
+      } else if (slide.image) {
+        // show image element
+        if (slideVideoEl) {
+          // pause and hide video
+          slideVideoEl.pause();
+          slideVideoEl.removeAttribute('src');
+          slideVideoEl.load();
+          slideVideoEl.style.opacity = '0';
+          slideVideoEl.style.display = 'none';
+        }
+        if (slideImageEl) {
+          slideImageEl.src = slide.image;
+          slideImageEl.alt = slide.title || 'Slide image';
+          slideImageEl.style.display = '';
+          slideImageEl.style.opacity = '1';
+        }
+      } else {
+        // neither: hide both
+      }
+      // (no placeholder) — background layers already updated by showIndex
+    }
+
+    // prevent overlapping transitions
+    let isTransitioning = false;
+    function showIndex(i) {
+      if (isTransitioning) return;
+      i = ((i % slides.length) + slides.length) % slides.length;
+      const nextIndex = i;
+      const nextBg = slides[nextIndex].bg;
+      const showLayer = topIsA ? layerB : layerA;
+      const hideLayer = topIsA ? layerA : layerB;
+
+      isTransitioning = true;
+      // prepare next layer background
+      setLayer(showLayer, nextBg);
+      // fade out slide image a bit to mask swap
+      if (slideImageEl) {
+        slideImageEl.style.opacity = '0';
+      }
+
+      // trigger crossfade
+      showLayer.offsetHeight;
+      showLayer.classList.add('visible');
+      hideLayer.classList.remove('visible');
+
+      const onBgTransitionEnd = (ev) => {
+        if (ev.propertyName !== 'opacity') return;
+        // update content now that background finished fading in
+        index = nextIndex;
+        updateContent(index);
+        indicator.textContent = (index + 1) + ' / ' + slides.length;
+
+        // restore image with soft fade
+        if (slideImageEl) {
+          // if slide has image, it was set in updateContent and has opacity 1 already
+          slideImageEl.style.opacity = '1';
+        }
+
+        // cleanup and re-enable transitions
+        showLayer.removeEventListener('transitionend', onBgTransitionEnd);
+        topIsA = !topIsA;
+        // give a tiny buffer for subsequent transitions
+        setTimeout(()=>{ isTransitioning = false; }, 80);
+      };
+
+      showLayer.addEventListener('transitionend', onBgTransitionEnd);
+    }
+
+    function next() { showIndex(index + 1); }
+    function prev() { showIndex(index - 1); }
+
+    document.getElementById('next').addEventListener('click', (e)=>{ e.preventDefault(); next(); });
+    document.getElementById('prev').addEventListener('click', (e)=>{ e.preventDefault(); prev(); });
+    // placeholder removed; keep keyboard + buttons for navigation
+
+    // initialize
+    setLayer(layerA, slides[0].bg);
+    setLayer(layerB, slides[1 % slides.length].bg);
+    layerA.classList.add('visible');
+    topIsA = true;
+    index = 0;
+    updateContent(0);
+    indicator.textContent = (index + 1) + ' / ' + slides.length;
+
+    window.addEventListener('keydown', (e)=>{
+      if (e.key === 'ArrowRight') next();
+      if (e.key === 'ArrowLeft') prev();
+    });
+  </script>
+</body>
+</html>
