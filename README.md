@@ -1,6 +1,5 @@
-# Trend Report Hero Demo
+Web Design Zine
 
-This small project adds a simple static `index.html` hero card that mimics the look of the Artlist Trend Report hero (placeholder image with the article URL text).
 
 Files added:
 
